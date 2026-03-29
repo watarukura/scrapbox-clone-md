@@ -40,6 +40,40 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
+### テスト
+
+#### Rust 単体テスト
+
+```bash
+cd src-tauri
+cargo test
+```
+
+#### E2E テスト (Playwright)
+
+```bash
+# Playwright ブラウザのインストール（初回のみ）
+pnpm exec playwright install
+
+# E2E テストの実行
+pnpm exec playwright test
+
+# UI モードで実行（デバッグ時に便利）
+pnpm exec playwright test --ui
+```
+
+### リント・フォーマット
+
+```bash
+# フロントエンド
+pnpm exec tsc --noEmit        # 型チェック
+
+# バックエンド
+cd src-tauri
+cargo fmt                      # フォーマット
+cargo clippy                   # リント
+```
+
 ### プロジェクト構成
 
 ```

@@ -43,14 +43,13 @@ pub fn upsert_note(conn: &Connection, note: &Note) -> Result<(), rusqlite::Error
 pub fn update_fts(conn: &Connection, note: &Note) -> Result<(), rusqlite::Error> {
     // Delete old entry if exists
     conn.execute(
-        "DELETE FROM note_fts WHERE rowid = (SELECT rowid FROM notes WHERE id = ?1)",
+        "DELETE FROM note_fts WHERE note_id = ?1",
         params![note.id],
     )?;
     // Insert new entry
     conn.execute(
-        "INSERT INTO note_fts(rowid, title, body_plaintext)
-         SELECT rowid, title, body_plaintext FROM notes WHERE id = ?1",
-        params![note.id],
+        "INSERT INTO note_fts(note_id, title, body_plaintext) VALUES (?1, ?2, ?3)",
+        params![note.id, note.title, note.body_plaintext.as_deref().unwrap_or("")],
     )?;
     Ok(())
 }
@@ -137,7 +136,7 @@ pub fn search_fts(
          n.extension, n.frontmatter_json, n.body_markdown, n.body_plaintext, n.hash_sha256,
          n.file_created_at, n.file_modified_at, n.indexed_at, n.is_deleted
          FROM notes n
-         JOIN note_fts f ON f.rowid = n.rowid
+         JOIN note_fts f ON f.note_id = n.id
          WHERE note_fts MATCH ?1 AND n.workspace_id = ?2 AND n.is_deleted = 0
          ORDER BY rank",
     )?;
@@ -301,7 +300,11 @@ mod tests {
     }
 
     fn rebuild_fts(conn: &Connection) {
-        conn.execute("INSERT INTO note_fts(note_fts) VALUES('rebuild')", []).unwrap();
+        conn.execute_batch("DELETE FROM note_fts;").unwrap();
+        conn.execute_batch(
+            "INSERT INTO note_fts(note_id, title, body_plaintext)
+             SELECT id, title, COALESCE(body_plaintext, '') FROM notes WHERE is_deleted = 0;"
+        ).unwrap();
     }
 
     #[test]

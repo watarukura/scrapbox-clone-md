@@ -8,9 +8,13 @@ export function Home() {
   const { loadNotes } = useNotes()
 
   const handleOpenFolder = async () => {
-    const selected = await open({ directory: true, multiple: false })
-    if (selected) {
-      await openWorkspace(selected)
+    try {
+      const selected = await open({ directory: true, multiple: false })
+      if (selected) {
+        await openWorkspace(selected)
+      }
+    } catch (err) {
+      console.error("Failed to open folder:", err)
     }
   }
 

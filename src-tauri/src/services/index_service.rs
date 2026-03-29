@@ -13,6 +13,18 @@ use std::path::Path;
 use uuid::Uuid;
 
 pub fn full_scan(db: &Database, workspace: &Workspace) -> Result<(), String> {
+    match full_scan_inner(db, workspace) {
+        Ok(()) => Ok(()),
+        Err(e) if e.contains("malformed") || e.contains("corrupt") || e.contains("fts5") => {
+            eprintln!("FTS corruption detected during full_scan: {e}. Rebuilding FTS index...");
+            db.rebuild_fts().map_err(|e| e.to_string())?;
+            full_scan_inner(db, workspace)
+        }
+        Err(e) => Err(e),
+    }
+}
+
+fn full_scan_inner(db: &Database, workspace: &Workspace) -> Result<(), String> {
     let root = Path::new(&workspace.root_path);
     let files = scanner::scan_md_files(root);
     let now = Utc::now().to_rfc3339();
